@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<executionPlan name="AbnormalFrequency" statistics="disable"
+  trace="enable" xmlns="http://wso2.org/carbon/eventprocessor">
+  <description/>
+  <siddhiConfiguration>
+    <property name="siddhi.persistence.snapshot.time.interval.minutes">0</property>
+    <property name="siddhi.enable.distributed.processing">false</property>
+  </siddhiConfiguration>
+  <importedStreams>
+    <stream as="input" name="transactionStream" version="1.0.0"/>
+  </importedStreams>
+  <queryExpressions><![CDATA[from input#window.externalTime(timestamp, 1 day)
+select count(cardnum) as txnCounter, txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 1 as fraudflag
+group by cardnum
+having txnCounter > 5 
+insert into tempFraudStream;
+
+from input#window.externalTime(timestamp, 1 day)
+select count(cardnum) as txnCounter, txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0 as fraudflag
+group by cardnum
+having txnCounter <= 5
+insert into tempOutStream;
+
+from tempFraudStream
+select  txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, fraudflag
+insert into fraudStream;
+
+from tempOutStream
+select  txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, fraudflag
+insert into outputStream;
+
+]]></queryExpressions>
+  <exportedStreams>
+    <stream name="fraudStream" valueOf="fraudStream" version="1.0.1"/>
+    <stream name="outputStream" valueOf="outputStream" version="1.0.1"/>
+  </exportedStreams>
+</executionPlan>

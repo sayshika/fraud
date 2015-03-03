@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<executionPlan name="LargeItemQty" statistics="disable" trace="enable" xmlns="http://wso2.org/carbon/eventprocessor">
+  <description/>
+  <siddhiConfiguration>
+    <property name="siddhi.persistence.snapshot.time.interval.minutes">0</property>
+    <property name="siddhi.enable.distributed.processing">false</property>
+  </siddhiConfiguration>
+  <importedStreams>
+    <stream as="input" name="transactionStream" version="1.0.0"/>
+  </importedStreams>
+  <queryExpressions><![CDATA[define table avgQty ( itemNo string, avg int, stdev int );
+
+from input[not((itemNo==avgQty.itemNo) in avgQty)]
+select input.itemNo, input.qty as avg, input.qty as stdev
+insert into avgQty;
+
+from input#window.time(10 days) 
+select itemNo, avg(qty) as avg, max(qty) as stdev
+group by itemNo
+update avgQty 
+on itemNo ==avgQty.itemNo;
+
+from input as i unidirectional join avgQty as av
+on i.itemNo == av.itemNo
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, i.itemNo, qty, timestamp, av.avg, av.stdev
+insert into tempStream;
+
+from tempStream[qty > (avg+2*stdev)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 1 as fraudflag
+insert into fraudStream;
+
+from tempStream[qty <= (avg+2*stdev)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 1 as fraudflag
+insert into outputStream;
+]]></queryExpressions>
+  <exportedStreams>
+    <stream name="fraudStream" valueOf="fraudStream" version="1.0.1"/>
+    <stream name="outputStream" valueOf="outputStream" version="1.0.1"/>
+  </exportedStreams>
+</executionPlan>

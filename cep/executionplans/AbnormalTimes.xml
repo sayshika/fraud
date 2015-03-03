@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<executionPlan name="AbnormalTimes" statistics="disable" trace="enable" xmlns="http://wso2.org/carbon/eventprocessor">
+  <description/>
+  <siddhiConfiguration>
+    <property name="siddhi.persistence.snapshot.time.interval.minutes">0</property>
+    <property name="siddhi.enable.distributed.processing">false</property>
+  </siddhiConfiguration>
+  <importedStreams>
+    <stream as="input" name="transactionStream" version="1.0.0"/>
+  </importedStreams>
+  <queryExpressions><![CDATA[define table abnormalTimes (itemNo string, fromTime long, toTime long) from ('datasource.name'='FraudToolbox', 'database.name'='fraud', 'table.name'='abnormalTimes');
+
+// fraud: abnormal times
+from input[((itemNo==abnormalTimes.itemNo and (timestamp>=abnormalTimes.fromTime and timestamp<abnormalTimes.toTime)) in abnormalTimes)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 1 as fraudflag
+insert into fraudStream;
+
+// Not fraud
+from input[not((itemNo==abnormalTimes.itemNo and (timestamp>=abnormalTimes.fromTime and timestamp<abnormalTimes.toTime)) in abnormalTimes)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 0 as fraudflag
+insert into outputStream;]]></queryExpressions>
+  <exportedStreams>
+    <stream name="fraudStream" valueOf="fraudStream" version="1.0.1"/>
+    <stream name="outputStream" valueOf="outputStream" version="1.0.1"/>
+  </exportedStreams>
+</executionPlan>

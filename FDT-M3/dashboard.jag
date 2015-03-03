@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fraud Detection Toolbox</title>
+
+<!-- Bootstrap -->
+<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.5.0/bootstrap-table.min.css">
+<link rel="stylesheet" href="js/bstable-filter/bootstrap-table-filter.css">
+<link href="js/daterangepicker/daterangepicker-bs3.css" rel="stylesheet">
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+<link rel="stylesheet" href="js/leaflet/leaflet.label.css" />
+<link href="css/default.css" rel="stylesheet">
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+          <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+          <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+          <![endif]-->
+          </head>
+          <body>
+          <nav class="navbar navbar-inverse navbar-fixed-top">
+          <div class="container-fluid">
+          <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          </button>
+          <a id="fdt-logo" class="navbar-brand" href="http://getbootstrap.com/examples/dashboard/#">
+          <img alt="FDT" src="images/logo.png">
+          </a>
+          </div>
+          <div class="navbar-collapse collapse" id="navbar">
+          <ul class="nav navbar-nav navbar-right">
+          <li><a href="index.jag">Home</a></li>
+          <li><a href="dashboard.jag" class="active">Dashboard</a></li>
+          </ul>
+          </div>
+          </div>
+          </nav>
+
+          <div class="container-fluid">
+          <div class="row padtop70">
+          <div class="col-sm-8 col-md-8">
+          <h4 class="sub-header">Transactions for card number <small id="cardNumberDisplay">-</small></h4>
+          </div>
+          <div class="col-sm-4 col-md-4">
+          <div id="reportrange" class="pull-right" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc">
+          <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>
+          <span></span> <b class="caret"></b>
+          </div>
+          </div>
+          </div>
+          <div class="row">
+          <div class="col-sm-12 col-md-12 main">
+              <div id="pop" style="background:#e2e2e2; margin-bottom:20px;" class"col-sm-12 col-md-12">
+                <div class="dataSave hideme"></div>
+              </div>
+              <div id="filter-bar"></div>
+              <table id="dashboard-main-table" class="table-striped table-condensed font12"></table>
+          </div>
+            </div>
+            <div class="row">
+            <div class="col-sm-12 col-md-12">
+            <div id="map-container">
+            <ul class="nav nav-tabs">
+                <li class="active"><a  href="#shipping-ip-map">Shipping & IP Location Map</a></li>
+                <li><a href="#intensity-map">Intensity Map</a></li>
+                <li><a href="#sequance-map">Sequance Map</a></li>
+            </ul>
+            <div class="tab-content">
+                <div id="shipping-ip-map" class="tab-pane fade in active"></div>
+                <div id="intensity-map" class="tab-pane"></div>
+                <div id="sequance-map" class="tab-pane"></div>
+            </div>
+            </div>
+            </div>
+            </div>
+            </div>
+
+            <footer class="footer container-fluid">
+            <p class="copyrights t-center">&copy; 2015 WSO2 Inc. All Rights Reserved</p>
+            </footer>
+
+            <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+            <script type="text/javascript" src="bootstrap/js/bootstrap.min.js"></script>
+            <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.5.0/bootstrap-table.min.js"></script>
+            <script type="text/javascript" src="js/bstable-filter/bootstrap-table-filter.js"></script>
+            <!--<script type="text/javascript" src="js/bstable-filter/ext/bs-table.js"></script>-->
+
+            <script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+            <script type="text/javascript" src="js/leaflet/Leaflet.MakiMarkers.js"></script>
+            <script type="text/javascript" src="js/leaflet/Leaflet.MakiMarkers.js"></script>
+            <script type="text/javascript" src="js/leaflet/leaflet.label.js"></script>
+            <script type="text/javascript" src="js/daterangepicker/moment.min.js"></script>
+            <script type="text/javascript" src="js/daterangepicker/daterangepicker.js"></script>
+
+            <script type="text/javascript" src="js/util.js" ></script>
+            <script type="text/javascript" src="js/fdt.js" ></script>
+            <script type="text/javascript" src="js/fdtClient.js" ></script>
+
+           
+
+
+            <script type="text/javascript">
+            //window.intensityMap = "";
+            //window.shippingIpMap = "";
+            //window.sequanceMap = "";
+            //window.dateRangeStart = "";
+            //window.dateRangeEnd = "";
+
+            fdt.searchRecordsFrom();
+            var cardId = loadData("wsDataLocal");
+            $("#cardNumberDisplay").text(cardId.event.payloadData.cardnum);
+
+            function clearMaps(){
+                if (shippingIpMap != undefined) { shippingIpMap.remove(); }
+                if (intensityMap != undefined) { intensityMap.remove(); }
+                if (sequanceMap != undefined) { sequanceMap.remove(); }
+              }
+            
+            $('#map-container a').on('click',function (e) {
+              e.preventDefault();
+              $(this).tab('show');
+            });
+            $('#map-container a').on('shown.bs.tab', function (e) {
+              var tabName = $(e.target).text();
+              console.log(tabName);
+              if(tabName == "Intensity Map"){
+                intensityMap.invalidateSize(false);
+              }else if(tabName == "Sequance Map"){
+                sequanceMap.invalidateSize(false);
+              }else{
+                shippingIpMap.invalidateSize(false);
+              }
+              
+              
+            });
+
+            var options = {
+              startDate: moment().subtract(29, 'days'),
+              endDate: moment(),
+              minDate: '01/01/2012',
+              maxDate: '12/31/2015',
+              dateLimit: {days: 60},
+              showDropdowns: true,
+              showWeekNumbers: true,
+              timePicker: true,
+              timePickerIncrement: 30,
+              timePicker12Hour: false,
+              ranges: {
+                'Today': [moment(), moment()],
+                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                'Last 30 Days': [moment().subtract(29, 'days'), moment()]
+              },
+              opens: 'left',
+              buttonClasses: ['btn btn-default'],
+              applyClass: 'btn-small btn-primary',
+              cancelClass: 'btn-small',
+              format: 'MM/DD/YYYY',
+              //altFormat: '@',
+              separator: ' to ',
+              locale: {
+                applyLabel: 'View',
+                cancelLabel: 'Clear',
+                fromLabel: 'From',
+                toLabel: 'To',
+                customRangeLabel: 'Custom',
+                daysOfWeek: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
+                monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+                firstDay: 1
+              }
+            };
+            var cb = function (start, end, label) {
+              //console.log("get time: "+start+" to " +end);
+              clearMaps();
+              fdt.getRecordsInRange(start,end);
+              $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+            };
+            $('#reportrange span').html(moment().subtract(29, 'days').format('MMMM D, YYYY') + ' - ' + moment().format('MMMM D, YYYY'));
+            $('#reportrange').daterangepicker(options, cb);
+
+            function initTable(tableData){
+
+              $("#dashboard-main-table").bootstrapTable({
+                data: tableData,
+                search: false,
+                showColumns: true,
+                showFilter: false,
+                toolbar: "#filter-bar",
+                pagination: true,
+                smartDisplay: true,
+                striped: true,
+                height: 429,
+                columns: [
+                {
+                  field: 'payload_itemNo',
+                  title: 'Item #',
+                  sortable: true
+                }, {
+                  field: 'payload_billingaddress',
+                  title: 'Billing Address',
+                  sortable: true
+                }, {
+                  field: 'payload_txnamt',
+                  title: 'Transaction Ammount',
+                  sortable: true,
+                  align: 'right'
+                }, {
+                  field: 'payload_timestamp',
+                  title: 'Timestamp',
+                  formatter: timeFormatter,
+                  align: 'right'
+                }, {
+                  field: 'payload_shippingaddress',
+                  title: 'Shipping Address',
+                  sortable: true
+                },{
+                  field: 'payload_txnid',
+                  title: 'Transaction ID',
+                  sortable: true
+                }, {
+                  field: 'payload_qty',
+                  title: 'Quantity',
+                  sortable: true
+                }, {
+                  field: 'payload_email',
+                  title: 'Email',
+                  sortable: true
+                }, {
+                  field: 'payload_currency',
+                  title: 'Currency',
+                  sortable: true
+                }, {
+                  field: 'payload_cardnum',
+                  title: 'Card #',
+                  sortable: true
+                }, {
+                  field: 'payload_ip',
+                  title: 'IP',
+                  sortable: true,
+                  align: 'right'
+                }]
+              }).on('click-row.bs.table', function (e, row, $element) {
+                //console.log('Row selected:  ' + JSON.stringify(row));
+              });
+
+              function timeFormatter(value) {
+                var date = new Date(value*1000);
+                var hours = date.getHours();
+                var minutes = "0" + date.getMinutes();
+                var seconds = "0" + date.getSeconds();
+                var time =  hours + ':' + minutes.substr(minutes.length-2) + ':' + seconds.substr(seconds.length-2);
+
+                var date = moment.unix(value/1000).format("MM/DD/YYYY");
+
+                return date +" "+time;
+              }
+
+
+              $('#filter-bar').bootstrapTableFilter({
+                    filters:[
+                      {
+                        field: 'payload_itemNo',
+                        label: 'Item #',
+                        type: 'search'
+                      }, { 
+                        field: 'payload_billingaddress',
+                        label: 'Billing Address',
+                        type: 'search'
+                      }, {
+                        field: 'payload_txnamt',
+                        label: 'Transaction Ammount',
+                        type: 'range'
+                      },{
+                        field: 'payload_shippingaddress',
+                        label: 'Shipping Address',
+                        type: 'search'
+                      },{
+                        field: 'payload_txnid',
+                        label: 'Transaction ID',
+                        type: 'search'
+                      }, {
+                        field: 'payload_qty',
+                        label: 'Quantity',
+                        type: 'range'
+                      }, {
+                        field: 'payload_email',
+                        label: 'Email',
+                        type: 'search'
+                      }, {
+                        field: 'payload_currency',
+                        label: 'Currency',
+                        type: 'search'
+                      }, {
+                        field: 'payload_cardnum',
+                        label: 'Card #',
+                        type: 'search'
+                      }, {
+                        field: 'payload_ip',
+                        label: 'IP',
+                        type: 'search'
+                      }
+                    ],
+                    connectTo: '#dashboard-main-table',
+                    onSubmit: function(d) {
+                        var data = $('#filter-bar').bootstrapTableFilter('getData');
+                        var luceneQ = generateLucene(data);
+                        //console.log("---- "+data.payload_billingaddress.neq);
+                        console.log(luceneQ);
+                        clearMaps();
+                        fdt.filterRecords(luceneQ);
+                    }
+                });
+
+            }
+
+            function generateLucene(data){
+              //console.log(data);
+              var a1="",a2="",a3="",a4="",b1="",b2="",b3="",b4="",c1="",c2="",c3="",d1="",d2="",d3="",d4="",e1="",e2="",e3="",e4="",f1="",f2="",f3="",
+                  g1="",g2="",g3="",g4="",h1="",h2="",h3="",h4="",i1="",i2="",i3="",i4="",j1="",j2="",j3="",j4="";
+              if(typeof data.payload_itemNo === 'undefined'){
+                a1,a2,a3,a4 = "";
+              }else{
+                a1 = (typeof data.payload_itemNo.eq === 'undefined' ? "" : 'payload_itemNo:' + data.payload_itemNo.eq +' AND ')
+                a2 = (typeof data.payload_itemNo.neq === 'undefined' ? "" : 'payload_itemNo:' + data.payload_itemNo.neq +' AND ');
+                a3 = (typeof data.payload_itemNo.cnt === 'undefined' ? "" : 'payload_itemNo:' + data.payload_itemNo.cnt +' AND ');
+                a4 = (typeof data.payload_itemNo.ncnt === 'undefined' ? "" : 'payload_itemNo:' + data.payload_itemNo.ncnt +' AND ');
+              }
+              if(typeof data.payload_billingaddress === 'undefined'){
+                b1 = "";
+              }else{
+                b1 = (typeof data.payload_billingaddress.eq === 'undefined' ? "" : 'payload_billingaddress:' + data.payload_billingaddress.eq +' AND ');
+                b2 = (typeof data.payload_billingaddress.neq === 'undefined' ? "" : 'payload_billingaddress:' + data.payload_billingaddress.neq +' AND ');
+                b3 = (typeof data.payload_billingaddress.cnt === 'undefined' ? "" : 'payload_billingaddress:' + data.payload_billingaddress.cnt +' AND ');
+                b4 = (typeof data.payload_billingaddress.ncnt === 'undefined' ? "" : 'payload_billingaddress:' + data.payload_billingaddress.ncnt +' AND ');
+              }
+              if(typeof data.payload_txnamt === 'undefined'){
+                c1 = "";
+              }else{
+                c1 = (typeof data.payload_txnamt.lte === 'undefined' ? "" : 'payload_txnamt:' + data.payload_txnamt.lte +' AND ');
+                c2 = (typeof data.payload_txnamt.gte === 'undefined' ? "" : 'payload_txnamt:' + data.payload_txnamt.gte +' AND ');
+                c3 = (typeof data.payload_txnamt.eq === 'undefined' ? "" : 'payload_txnamt:' + data.payload_txnamt.eq +' AND ');
+              }
+              if(typeof data.payload_shippingaddress === 'undefined'){
+                d1 = "";
+              }else{
+                d1 = (typeof data.payload_shippingaddress.eq === 'undefined' ? "" : 'payload_shippingaddress:' + data.payload_shippingaddress.eq +' AND ');
+                d2 = (typeof data.payload_shippingaddress.neq === 'undefined' ? "" : 'payload_shippingaddress:' + data.payload_shippingaddress.neq +' AND ');
+                d3 = (typeof data.payload_shippingaddress.cnt === 'undefined' ? "" : 'payload_shippingaddress:' + data.payload_shippingaddress.cnt +' AND ');
+                d4 = (typeof data.payload_shippingaddress.ncnt === 'undefined' ? "" : 'payload_shippingaddress:' + data.payload_shippingaddress.ncnt +' AND ');
+              }
+              if(typeof data.payload_txnid === 'undefined'){
+                e1 = "";
+              }else{
+                e1 = (typeof data.payload_txnid.eq === 'undefined' ? "" : 'payload_txnid:"' + data.payload_txnid.eq +' AND ');
+                e2 = (typeof data.payload_txnid.neq === 'undefined' ? "" : 'payload_txnid:"' + data.payload_txnid.neq +' AND ');
+                e3 = (typeof data.payload_txnid.cnt === 'undefined' ? "" : 'payload_txnid:"' + data.payload_txnid.cnt +' AND ');
+                e4 = (typeof data.payload_txnid.ncnt === 'undefined' ? "" : 'payload_txnid:"' + data.payload_txnid.ncnt +' AND ');
+              }
+              if(typeof data.payload_qty === 'undefined'){
+                f1 = "";
+              }else{
+                f1 = (typeof data.payload_qty.lte === 'undefined' ? "" : 'payload_qty:' + data.payload_qty.lte +' AND ');
+                f2 = (typeof data.payload_qty.gte === 'undefined' ? "" : 'payload_qty:' + data.payload_qty.gte +' AND ');
+                f3 = (typeof data.payload_qty.eq === 'undefined' ? "" : 'payload_qty:' + data.payload_qty.eq +' AND ');
+              }
+              if(typeof data.payload_email === 'undefined'){
+                g1 = "";
+              }else{
+                g1 = (typeof data.payload_email.eq === 'undefined' ? "" : 'payload_email:' + data.payload_email.eq +' AND ');
+                g2 = (typeof data.payload_email.neq === 'undefined' ? "" : 'payload_email:' + data.payload_email.neq +' AND ');
+                g3 = (typeof data.payload_email.cnt === 'undefined' ? "" : 'payload_email:' + data.payload_email.cnt +' AND ');
+                g4 = (typeof data.payload_email.ncnt === 'undefined' ? "" : 'payload_email:' + data.payload_email.ncnt +' AND ');
+              }
+              if(typeof data.payload_currency === 'undefined'){
+                h1 = "";
+              }else{
+                h1 = (typeof data.payload_currency.eq === 'undefined' ? "" : 'payload_currency:' + data.payload_currency.eq +' AND ');
+                h2 = (typeof data.payload_currency.neq === 'undefined' ? "" : 'payload_currency:' + data.payload_currency.neq +' AND ');
+                h3 = (typeof data.payload_currency.cnt === 'undefined' ? "" : 'payload_currency:' + data.payload_currency.cnt +' AND ');
+                h4 = (typeof data.payload_currency.ncnt === 'undefined' ? "" : 'payload_currency:' + data.payload_currency.ncnt +' AND ');
+              }
+              if(typeof data.payload_cardnum === 'undefined'){
+                i1 = "";
+              }else{
+                i1 = (typeof data.payload_cardnum.eq === 'undefined' ? "" : 'payload_cardnum:' + data.payload_cardnum.eq +' AND ');
+                i2 = (typeof data.payload_cardnum.neq === 'undefined' ? "" : 'payload_cardnum:' + data.payload_cardnum.neq +' AND ');
+                i3 = (typeof data.payload_cardnum.cnt === 'undefined' ? "" : 'payload_cardnum:' + data.payload_cardnum.cnt +' AND ');
+                i4 = (typeof data.payload_cardnum.ncnt === 'undefined' ? "" : 'payload_cardnum:' + data.payload_cardnum.ncnt +' AND ');
+              }
+              if(typeof data.payload_ip === 'undefined'){
+                j1 = "";
+              }else{
+                j1 = (typeof data.payload_ip.eq === 'undefined' ? "" : 'payload_ip:' + data.payload_ip.eq +' AND ');
+                j2 = (typeof data.payload_ip.neq === 'undefined' ? "" : 'payload_ip:' + data.payload_ip.neq +' AND ');
+                j3 = (typeof data.payload_ip.cnt === 'undefined' ? "" : 'payload_ip:' + data.payload_ip.cnt +' AND ');
+                j4 = (typeof data.payload_ip.ncnt === 'undefined' ? "" : 'payload_ip:' + data.payload_ip.ncnt +' AND ');
+              }
+
+              var lucene = a1+a2+a3+a4+b1+b2+b3+b4+c1+c2+c3+d1+d2+d3+d4+e1+e2+e3+e4+f1+f2+f3+g1+g2+g3+g4+h1+h2+h3+h4+i1+i2+i3+i4+j1+j2+j3+j4;
+              var check = lucene.substring(lucene.length - 4, lucene.length - 1);
+              if(check == "AND"){
+                lucene = lucene.substring(0, lucene.length - 5);
+              }
+              return lucene;
+            }
+
+            </script>
+            <script type="text/javascript" src="js/sample-geojson.js" ></script>
+            <script type="text/javascript" src="js/shippingIpMap.js"></script>
+            <script type="text/javascript" src="js/intensityMap.js"></script>
+            <script type="text/javascript" src="js/sequanceMap.js"></script>
+
+            </body>
+            </html>
