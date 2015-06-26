@@ -1,0 +1,20 @@
+/* Enter a unique ExecutionPlan */
+@Plan:name('FS_AbnormalTimes')
+
+/* Enter a unique description for ExecutionPlan */
+-- @Plan:description('ExecutionPlan')
+
+/* define streams/tables and write queries here ... */
+
+@Import('transactionStream:1.0.0')
+define stream input (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long);
+
+@Export('scoreStream:1.0.1')
+define stream scoreStream (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long, score double);
+
+@from(eventtable = 'rdbms' , datasource.name = 'FraudToolbox' , table.name = 'abnormalTimes')
+define table abnormalTimes (itemNo string, fromTime long, toTime long);
+
+from input[((itemNo==abnormalTimes.itemNo and (timestamp>=abnormalTimes.fromTime and timestamp<abnormalTimes.toTime)) in abnormalTimes)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 5.0 as score
+insert into scoreStream;

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<feature id="org.wso2.carbon.analytics.dashboard.server" label="WSO2 Carbon - Analytics Dashboard Server Feature" provider-name="%providerName" version="1.0.3.SNAPSHOT">
+  <description>This feature contains the core bundles required for Analytics Dashboard backend functionality</description>
+  <copyright>%copyright</copyright>
+  <license url="%licenseURL">%license</license>
+  <plugin id="org.wso2.carbon.analytics.dashboard" unpack="false" version="1.0.3.SNAPSHOT"/>
+</feature>

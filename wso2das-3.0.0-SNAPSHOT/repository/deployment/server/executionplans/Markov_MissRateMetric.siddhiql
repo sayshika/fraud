@@ -1,0 +1,61 @@
+/* Enter a unique ExecutionPlan */
+@Plan:name('Markov_MissRateMetric')
+
+/* Enter a unique description for ExecutionPlan */
+-- @Plan:description('ExecutionPlan')
+
+/* define streams/tables and write queries here ... */
+
+@Import('stateStream:1.0.0')
+define stream stateStream (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long, state string);
+
+@Export('fraudStream:1.0.1')
+define stream fraudStream (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long, score double, fraudflag int);
+
+@from(eventtable = 'rdbms' , datasource.name = 'FraudToolbox' , table.name = 'MarkovModelTable')
+define table MarkovModelTable (transition string, firstState string, count double, probability double);
+
+from every ta = stateStream ->
+tb = stateStream
+select tb.txnid, tb.cardnum, tb.itemNo, tb.txnamt, tb.currency, tb.email, tb.shippingaddress, tb.billingaddress, tb.ip, tb.qty, tb.timestamp, ta.state as firstState, str:concat(ta.state,tb.state) as transition
+insert into metricStream;
+
+/***************************** Determine Miss Rate value *******************************************************************************************************************************************/
+from metricStream[not((transition == MarkovModelTable.transition) in MarkovModelTable)]
+select metricStream.txnid, metricStream.cardnum , metricStream.itemNo , metricStream.txnamt , metricStream.currency, metricStream.email, metricStream.shippingaddress, metricStream.billingaddress, metricStream.ip, metricStream.qty, metricStream.timestamp , metricStream.firstState , metricStream.transition , 1.0 as MissRateValue
+insert into MissRateValueStream;
+
+from metricStream as met join MarkovModelTable as mark
+on met.transition == mark.transition
+select met.txnid, met.cardnum , met.itemNo , met.txnamt , met.currency, met.email, met.shippingaddress, met.billingaddress, met.ip, met.qty, met.timestamp , met.firstState , met.transition , mark.probability as MissRateValue
+insert into MissRateValueStream;
+
+/***************************** Find maximum Probability *******************************************************************************************************************************************/
+
+from metricStream join MarkovModelTable
+on metricStream.firstState == MarkovModelTable.firstState
+select metricStream.txnid,  max( MarkovModelTable.probability) as MaxProbability
+insert into MaxProbabilityStream;
+
+/***************************** Determine value as 0 or 1 *********************************************************************************************************************************************/
+
+from MaxProbabilityStream as max join MissRateValueStream as miss
+on (max.txnid == miss.txnid) and not((miss.MissRateValue == max.MaxProbability))
+select miss.txnid, miss.cardnum , miss.itemNo , miss.txnamt ,  miss.currency, miss.email, miss.shippingaddress, miss.billingaddress, miss.ip, miss.qty, miss.timestamp , miss.firstState, miss.transition , 1 as DeterminedValue 
+ insert into MissRateDeterminedValueStream;
+
+from MaxProbabilityStream as max join MissRateValueStream as miss
+on (max.txnid == miss.txnid) and ((miss.MissRateValue == max.MaxProbability))
+select miss.txnid, miss.cardnum , miss.itemNo , miss.txnamt ,  miss.currency, miss.email, miss.shippingaddress, miss.billingaddress, miss.ip, miss.qty, miss.timestamp , miss.firstState, miss.transition , 0 as DeterminedValue
+insert into MissRateDeterminedValueStream;
+
+/***************************** Normalise the value ******************************************************************************************************************************************************/
+
+from MissRateDeterminedValueStream#window.length(5)
+select txnid , cardnum , itemNo , txnamt , currency, email, shippingaddress, billingaddress, ip, qty, timestamp ,  firstState, transition  , DeterminedValue,  avg (DeterminedValue) as NormalizedValue 
+group by cardnum
+insert into NormalizedMissRateStream;
+
+from NormalizedMissRateStream[NormalizedValue > 0.8]
+select txnid , cardnum , txnamt , currency, email, shippingaddress, billingaddress, ip, itemNo , qty, timestamp, 0.0 as score, 100 as fraudflag
+insert into fraudStream;

@@ -1,0 +1,22 @@
+/* Enter a unique ExecutionPlan */
+@Plan:name('FraudScorer')
+
+/* Enter a unique description for ExecutionPlan */
+-- @Plan:description('FraudScorer')
+
+/* define streams/tables and write queries here ... */
+
+@Import('scoreStream:1.0.1')
+define stream scoreStream (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long, score double);
+
+@Export('fraudStream:1.0.1')
+define stream fraudStream (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long, score double, fraudflag int);
+
+from scoreStream#window.timeBatch(2 sec)
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, sum(score) as score
+group by txnid
+insert into compareStream;
+
+from compareStream[score>80]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, score, 50 as fraudflag
+insert into fraudStream;

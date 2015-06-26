@@ -1,0 +1,56 @@
+{
+  "name": "stateStream",
+  "version": "1.0.0",
+  "nickName": "",
+  "description": "",
+  "payloadData": [
+    {
+      "name": "txnid",
+      "type": "STRING"
+    },
+    {
+      "name": "cardnum",
+      "type": "LONG"
+    },
+    {
+      "name": "txnamt",
+      "type": "DOUBLE"
+    },
+    {
+      "name": "currency",
+      "type": "STRING"
+    },
+    {
+      "name": "email",
+      "type": "STRING"
+    },
+    {
+      "name": "shippingaddress",
+      "type": "STRING"
+    },
+    {
+      "name": "billingaddress",
+      "type": "STRING"
+    },
+    {
+      "name": "ip",
+      "type": "STRING"
+    },
+    {
+      "name": "itemNo",
+      "type": "STRING"
+    },
+    {
+      "name": "qty",
+      "type": "INT"
+    },
+    {
+      "name": "timestamp",
+      "type": "LONG"
+    },
+    {
+      "name": "state",
+      "type": "STRING"
+    }
+  ]
+}

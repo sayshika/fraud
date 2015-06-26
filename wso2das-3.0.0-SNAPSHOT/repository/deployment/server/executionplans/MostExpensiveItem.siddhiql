@@ -1,0 +1,20 @@
+/* Enter a unique ExecutionPlan */
+@Plan:name('GR_MostExpensiveItem')
+
+/* Enter a unique description for ExecutionPlan */
+-- @Plan:description('ExecutionPlan')
+
+/* define streams/tables and write queries here ... */
+
+@Import('transactionStream:1.0.0')
+define stream input (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long);
+
+@Export('fraudStream:1.0.1')
+define stream fraudStream (txnid string, cardnum long, txnamt double, currency string, email string, shippingaddress string, billingaddress string, ip string, itemNo string, qty int, timestamp long, score double, fraudflag int);
+
+@from(eventtable = 'rdbms' , datasource.name = 'FraudToolbox' , table.name = 'expensiveItem')
+define table expensiveItem (itemNo string);
+
+from input[not ((itemNo==expensiveItem.itemNo) in expensiveItem)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 1 as fraudflag
+insert into outputStream;
