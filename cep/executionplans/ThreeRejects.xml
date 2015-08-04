@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<executionPlan name="ThreeRejects" statistics="disable" trace="enable" xmlns="http://wso2.org/carbon/eventprocessor">
+  <description/>
+  <siddhiConfiguration>
+    <property name="siddhi.persistence.snapshot.time.interval.minutes">0</property>
+    <property name="siddhi.enable.distributed.processing">false</property>
+  </siddhiConfiguration>
+  <importedStreams>
+    <stream as="input" name="transactionStream" version="1.0.0"/>
+  </importedStreams>
+  <queryExpressions><![CDATA[define table FraudCount (cardnum long, txnid string) from ('datasource.name'='FraudToolbox', 'database.name'='fraud', 'table.name'='rejectedtxns');
+
+from input[((cardnum==FraudCount.cardnum) in FraudCount)]
+select txnid, input.cardnum, count(input.cardnum) as txnCount, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 1 as fraudflag
+group by cardnum
+insert into tempStream;
+
+from tempStream[txnCount>3]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 1 as fraudflag
+insert into fraudStream;
+
+from tempStream[txnCount<=3]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 0 as fraudflag
+insert into outputStream;
+
+from input[not((cardnum==FraudCount.cardnum) in FraudCount)]
+select txnid, input.cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score, 0 as fraudflag
+insert into outputStream;]]></queryExpressions>
+  <exportedStreams>
+    <stream name="fraudStream" valueOf="fraudStream" version="1.0.1"/>
+    <stream name="outputStream" valueOf="outputStream" version="1.0.1"/>
+  </exportedStreams>
+</executionPlan>

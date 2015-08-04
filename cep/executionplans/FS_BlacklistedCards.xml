@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<executionPlan name="FS_BlacklistedCards" statistics="disable"
+  trace="enable" xmlns="http://wso2.org/carbon/eventprocessor">
+  <description/>
+  <siddhiConfiguration>
+    <property name="siddhi.persistence.snapshot.time.interval.minutes">0</property>
+    <property name="siddhi.enable.distributed.processing">false</property>
+  </siddhiConfiguration>
+  <importedStreams>
+    <stream as="input" name="transactionStream" version="1.0.0"/>
+  </importedStreams>
+  <queryExpressions><![CDATA[define table blacklisted (id int, cardnum long) from ('datasource.name'='FraudToolbox', 'database.name'='fraud', 'table.name'='blacklisted');
+
+from input[((cardnum==blacklisted.cardnum) in blacklisted)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 5.0 as score
+insert into scoreStream;
+
+from input[not ((cardnum==blacklisted.cardnum) in blacklisted)]
+select txnid, cardnum, txnamt, currency, email, shippingaddress, billingaddress, ip, itemNo, qty, timestamp, 0.0 as score
+insert into scoreStream;]]></queryExpressions>
+  <exportedStreams>
+    <stream name="scoreStream" valueOf="scoreStream" version="1.0.1"/>
+  </exportedStreams>
+</executionPlan>
